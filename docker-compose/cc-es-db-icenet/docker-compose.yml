@@ -1,0 +1,101 @@
+version: "3"
+services:
+  db:
+    build:
+      context: /home/ec2-user/destiny-docker/dockerfiles/db
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
+    image: db:9.5
+    container_name: db
+    network_mode: host
+    hostname: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=123Next
+      - PGPASSWORD=123Next
+    ports:
+    - "5432:5432"
+    extra_hosts:
+      - "docker-cc.serviceops.cloudaz.net:10.0.50.160"
+  es:
+    build:
+      context: /home/ec2-user/destiny-docker/dockerfiles/elasticsearch1.7.3
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
+    image: es:1.7.3
+    container_name: es
+    network_mode: host
+    hostname: es
+    extra_hosts:
+      - "cc:10.0.50.160"   
+    ports:
+    - "9200:9200"
+    - "9300:9300"
+  cc:
+    build:
+      context: /home/ec2-user/destiny-docker/dockerfiles/cc
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
+    image: cc:8.7.2-13
+    container_name: cc
+    network_mode: host
+    hostname: docker-cc.serviceops.cloudaz.net
+    ports:
+    - "443:443"
+    - "8443:8443"
+    - "8889:8889"
+    volumes:
+    - /home/ec2-user/destiny-docker/dockerfiles/cc:/tmp/key
+    - /tmp/nextlabs/PolicyServer/server/certificates/cc:/opt/nextlabs/PolicyServer/server/certificates
+    extra_hosts:
+      - "db:10.0.50.160"
+      - "es:10.0.50.160"   
+      - "icenet:10.0.50.160"
+    depends_on:
+      - db
+      - es
+  icenet:
+    build:
+      context: /home/ec2-user/destiny-docker/dockerfiles/icenet
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
+    image: icenet:8.7.2-13
+    container_name: icenet
+    network_mode: host
+    hostname: icenet
+    ports:
+    - "6443:6443"
+    - "8005:8005"
+    - "7779:7779"
+    volumes:
+    - /home/ec2-user/destiny-docker/dockerfiles/icenet:/tmp/key
+    - /tmp/nextlabs/PolicyServer/server/certificates/cc:/tmp/cc-certs
+    extra_hosts:
+      - "docker-cc.serviceops.cloudaz.net:10.0.50.160"
+      - "db:10.0.50.160"
+    depends_on:
+      - db
+      - es
+      - cc
+  jpc:
+    build:
+      context: /home/ec2-user/destiny-docker/dockerfiles/jpc
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
+    image: jpc:8.7.2-13
+    container_name: jpc
+    hostname: jpc
+    network_mode: host
+    extra_hosts:
+      - "docker-cc.serviceops.cloudaz.net:10.0.50.160"
+      - "icenet:10.0.50.160"
+    ports:
+    - "58080:58080"
+    depends_on:
+      - icenet

@@ -1,0 +1,115 @@
+#!groovy
+
+node {
+
+  def err = null
+  currentBuild.result = "SUCCESS"
+
+  try {
+    def packer_files = null
+    def docker_images = []
+
+    def docker_tag = params.docker_image_tag
+
+    // a prefix added to every docker image to be built
+    def docker_image_namespace = 'platform'
+
+    stage('Checkout') {
+      checkout scm
+    }
+
+    stage('Validate') {
+      packer_files = findFiles(glob: '**/packer-*.json')
+      // Take a packer file and validate it.
+      for (int i = 0; i < packer_files.size(); i++) {
+        def packer_file = packer_files[i]
+        echo "packer file: ${packer_file.path}"
+        sh "/root/packer validate ${packer_file.path}"
+      }
+    }
+
+    stage('Build') {
+      // stash everything used by packer
+      stash(includes: '**/playbooks/**,packer-*.json', name: 'packer_stash')
+      // the builds are independent of each other, so we can build them in parallel
+      def stepsForParallel = [:]
+      for (int i = 0; i < packer_files.size(); i++) {
+          // Get the actual packer_file here.
+          def packer_file = packer_files[i]
+
+      if (packer_file.path=="packer-combo-tomcat.json"){
+
+          // Transform that into a step and add the step to the map as the value, with
+          // a name for the parallel step as the key. Here, we'll just use something
+          // like "echoing (string)"
+          def stepName = "packer build: ${packer_file}"
+          
+          def packer_props = readJSON file: packer_file.path
+          def default_image_name = packer_props['variables']['docker_image_name']
+          // add a namespace before every image name
+          def modified_image_mame = docker_image_namespace + '/' + default_image_name
+          docker_images.add(modified_image_mame + ':' + docker_tag)
+
+          stepsForParallel[stepName] = {
+            node {
+              unstash 'packer_stash'
+              sh "/root/packer build --var destiny_artifacts=${params.destiny_artifacts} --var docker_image_name=${modified_image_mame} --var docker_image_tag=${docker_tag} ${packer_file.path}"
+              //echo "${params.destiny_artifacts}"
+            }
+          }
+        
+        
+         
+        }
+        
+
+    
+      }
+      // Actually run the steps in parallel - parallel takes a map as an argument,
+      // hence the above.
+      parallel stepsForParallel
+    }
+
+    stage('Publish') {
+       echo "Publish Image to ECR"
+      /*
+      if(params.DOCKER_REGISTRY_URL) {
+        def stepsForParallel = [:]
+        for (int i = 0; i < docker_images.size(); i++) {
+          def docker_image = docker_images[i]
+          
+          if (docker_image != null) {
+            def stepName = "publish image: ${docker_image}"
+            stepsForParallel[stepName] = {
+              node {
+                docker.withRegistry("${params.DOCKER_REGISTRY_URL}", "${params.DOCKER_REGISTRY_CREDENTIAL_ID}") {
+                  docker.image(docker_image).push(docker_tag)
+                  if(docker_tag != "latest") {
+                    docker.image(docker_image).push("latest")
+                  }
+                }
+              }
+            }
+          }
+        }
+        parallel stepsForParallel
+      } else {
+        echo "DOCKER_REGISTRY_URL is not defined, skip publish"
+      }
+      */
+    }
+    
+  }
+
+  catch (caughtError) {
+    err = caughtError
+    currentBuild.result = "FAILURE"
+  }
+
+  finally {
+    /* Must re-throw exception to propagate error */
+    if (err) {
+      throw err
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+    "variables": {
+      "destiny_artifacts": "",
+      "docker_image_name": "ik",
+      "docker_image_tag": "latest"
+    },
+    "builders": [
+      { 
+        "type": "docker",
+        "image": "alpine:3.9",
+        "run_command": ["-d", "-v", "{{user `destiny_artifacts`}}:/destiny_artifacts", "-i", "-t", "{{.Image}}", "/bin/sh"],
+        "commit": true,
+        "changes": [
+          "CMD [\"console\", \"catalina.sh\", \"run\", \"-config\", \"/opt/Nextlabs/PolicyServer/server/configuration/server.xml\"]",
+          
+          "ENTRYPOINT [\"/opt/Nextlabs/PolicyServer/server/tomcat/bin/entrypoint\"]"
+        ]
+      }
+    ],
+    "provisioners": [
+      {
+        "type": "shell",
+        "inline": [
+          "apk update && apk add --no-cache ansible python python-dev"
+        ]
+      },
+      {
+        "type": "ansible-local",
+        "playbook_file": "playbooks/ik.yml",
+        "playbook_dir": "playbooks"
+      },
+      {
+        "type": "shell",
+        "inline": [
+          "apk del ansible && rm -rf /tmp/*"
+        ]
+      }
+    ],
+    "post-processors": [
+      [
+        {
+          "type": "docker-tag",
+          "repository": "948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny",
+          "tag": "ik_v1"
+        },
+        {
+          "type": "docker-push",
+          "ecr_login": true,
+          "aws_access_key": "AKIAJ5WJBNUT4HH63X7Q",
+          "aws_secret_key": "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",
+          "login_server": "https://948173514100.dkr.ecr.us-east-1.amazonaws.com/"
+        }
+      ]
+    ]
+  }

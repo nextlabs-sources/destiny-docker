@@ -1,0 +1,23 @@
+---
+- name: "Create necessary dbinit folders"
+  file:
+    path: "{{ install_home }}/{{ item }}"
+    state: directory
+    recurse: true
+    mode: 0755
+  with_items:
+    - "certificates"
+- name: "Copy static certificates"
+  copy:
+    src: "{{ artifacts_path }}/certificates/{{ item }}"
+    dest: "{{ install_home }}/certificates/"
+  with_items:
+    - "temp_agent.cer"
+    - "policyAuthor.cer"
+    - "keymanagement.cer"
+    - "enrollment.cer"
+- name: Create entrypoint for container
+  template:
+    src: entrypoint.j2
+    dest: "{{ docker_entrypoint_home }}/entrypoint"
+    mode: "0755"

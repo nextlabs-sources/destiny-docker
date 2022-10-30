@@ -1,0 +1,59 @@
+{
+  "variables": {
+    "destiny_artifacts": "",
+    "docker_image_name": "certificate_generator",
+    "docker_image_tag": "latest"
+  },
+  "builders": [
+    {
+      "type": "docker",
+      "image": "openjdk:8-jre-alpine",
+      "run_command": ["-d", "-v", "{{user `destiny_artifacts`}}:/destiny_artifacts", "-i", "-t", "{{.Image}}", "/bin/sh"],
+      "commit": true,
+      "changes": [
+        "CMD [\"cert\"]",
+        "ENTRYPOINT [\"/usr/local/bin/entrypoint\"]"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "apk update && apk add --no-cache python python-dev ansible bash"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbooks/certificate_generator.yml",
+      "playbook_dir": "playbooks",
+      "extra_arguments": [
+        "-e",
+        "'ansible_python_interpreter=/usr/bin/python3'",
+        "-vvv"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "apk del ansible && rm -rf /tmp/* && rm -rf /var/cache/apk/*"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "docker-tag",
+        "repository": "948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny",
+        "tag": "cert-gen_v1"
+      },
+      {
+        "type": "docker-push",
+        "ecr_login": true,
+        "aws_access_key": "AKIAJ5WJBNUT4HH63X7Q",
+        "aws_secret_key": "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",
+        "login_server": "https://948173514100.dkr.ecr.us-east-1.amazonaws.com/"
+      }
+    ]
+  ]
+}

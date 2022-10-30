@@ -1,0 +1,12 @@
+---
+- hosts: 127.0.0.1
+  remote_user: root
+  
+  #pre_tasks:
+  #    - name: 'install python3'
+  #      raw: sudo apk -y add python
+        
+  vars:
+    artifacts_path: "/destiny_artifacts"
+  roles:
+    - role: certificate_generator

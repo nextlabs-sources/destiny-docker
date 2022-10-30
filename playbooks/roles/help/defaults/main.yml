@@ -1,0 +1,5 @@
+---
+docker_entrypoint_home: /opt/Nextlabs/PolicyServer/server/tomcat/bin
+install_home: /opt/Nextlabs/PolicyServer/server
+java_home: /opt/Nextlabs/PolicyServer
+catalina_home: /opt/Nextlabs/PolicyServer/server/tomcat

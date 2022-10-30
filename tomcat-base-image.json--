@@ -1,0 +1,65 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [
+    {
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}"      
+    }
+
+
+  ],
+
+  "provisioners": [
+
+    {
+      "type": "shell",
+      "inline": [
+        "sudo sed -i  's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config",
+        "sudo yum update -y",
+        "sudo yum install epel-release -y",
+        "sudo yum -y install python-pip",
+        "sudo pip install awscli --upgrade",
+        "sudo yum install java-1.8.0-openjdk -y",
+        "sudo yum install wget -y",
+        "sudo yum install unzip -y",
+        "sudo aws s3 cp s3://nxl-cc-ami-builder-source/packages/apache-tomcat-8.5.32.zip /tmp/apache-tomcat-8.5.32.zip",
+        "sudo unzip /tmp/apache-tomcat-8.5*.zip -d /usr/share/tomcat8",
+        "sudo mv /usr/share/tomcat8/apache-tomcat-8.5.32/* /usr/share/tomcat8",
+        "sudo rm -rf /usr/share/tomcat8/apache-tomcat-8.5.32",
+        "sudo groupadd tomcat",
+        "sudo useradd -M -s /bin/nologin -g tomcat -d /usr/share/tomcat8 tomcat",
+        "cd /usr/share/tomcat8/",
+        "sudo chown -R tomcat /usr/share/tomcat8",
+        "sudo chmod +x /usr/share/tomcat8/bin/*.sh",
+        "sudo chmod -R g+r conf",
+        "sudo chmod -R g+r conf",
+        "sudo chown -R tomcat webapps/ work/ temp/ logs/"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": "sudo chown centos: /etc/systemd/system/"
+    },
+    {
+      "type": "file",
+      "source": "./tomcat8.service",
+      "destination": "/etc/systemd/system/"
+    },
+    {
+      "type": "shell",
+      "inline": "sudo chown -R root: /etc/systemd/system/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo systemctl daemon-reload",
+        "sudo systemctl start tomcat8.service",
+        "sudo systemctl enable tomcat8"
+      ]
+    }
+
+  ]
+}

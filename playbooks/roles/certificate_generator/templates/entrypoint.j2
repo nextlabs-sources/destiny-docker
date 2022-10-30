@@ -1,0 +1,87 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = 'cert' ]; then
+  if [ -z "$SSL_PASSPHRASE" ]; then
+    echo "SSL_PASSPHRASE env is not set, exit"
+    exit 1
+  else
+    [ -z "$CERT_DN" ] && CERT_DN="CN=CompliantEnterprise Server, OU=CompliantEnterprise, O=NextLabs, L=San Mateo, ST=CA, C=US"
+    [ -z "$KEY_ALGO" ] && KEY_ALGO="DSA"
+    [ -z "$CERT_VALIDITY" ] && CERT_VALIDITY=3650
+    [ -z "$OUTPUT_PATH" ] && OUTPUT_PATH=/output
+
+    # create output path
+    mkdir -p "$OUTPUT_PATH"
+    # copy static certs
+    cp -f "{{ install_home }}/certificates"/* "$OUTPUT_PATH"
+
+    declare -a keyname_arr=("dcc" "application" "agent")
+    declare -a keyalias_arr=("DCC" "APP" "Agent")
+    for (( i=0; i<3; i++ ));
+    do
+      keytool -genkeypair \
+        -alias "${keyalias_arr[$i]}" \
+        -dName "$CERT_DN" \
+        -keypass "$SSL_PASSPHRASE" \
+        -keystore "$OUTPUT_PATH/${keyname_arr[$i]}-keystore.jks" \
+        -storepass "$SSL_PASSPHRASE" \
+        -keyalg "$KEY_ALGO" \
+        -validity "$CERT_VALIDITY"
+      keytool -exportcert \
+        -alias "${keyalias_arr[$i]}" \
+        -file "$OUTPUT_PATH/${keyname_arr[$i]}.cer" \
+        -keystore "$OUTPUT_PATH/${keyname_arr[$i]}-keystore.jks" \
+        -storepass "$SSL_PASSPHRASE"
+      keytool -importcert -v -noprompt \
+        -alias "${keyalias_arr[$i]}" \
+        -file "$OUTPUT_PATH/${keyname_arr[$i]}.cer" \
+        -keystore "$OUTPUT_PATH/${keyname_arr[$i]}-truststore.jks" \
+        -storepass "$SSL_PASSPHRASE"
+    done
+
+    keytool -importcert -v -noprompt \
+      -alias 'Agent' \
+      -file "$OUTPUT_PATH/agent.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'APP' \
+      -file "$OUTPUT_PATH/application.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'PolicyAuthor' \
+      -file "$OUTPUT_PATH/policyAuthor.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'Enrollment' \
+      -file "$OUTPUT_PATH/enrollment.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'KeyManagement' \
+      -file "$OUTPUT_PATH/keymanagement.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'Temp_Agent' \
+      -file "$OUTPUT_PATH/temp_agent.cer" \
+      -keystore "$OUTPUT_PATH/dcc-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'DCC' \
+      -file "$OUTPUT_PATH/dcc.cer" \
+      -keystore "$OUTPUT_PATH/agent-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    keytool -importcert -v -noprompt \
+      -alias 'DCC' \
+      -file "$OUTPUT_PATH/dcc.cer" \
+      -keystore "$OUTPUT_PATH/application-truststore.jks" \
+      -storepass "$SSL_PASSPHRASE"
+    echo "Generated all certs to: $OUTPUT_PATH"
+  fi
+else
+  exec "$@"
+fi

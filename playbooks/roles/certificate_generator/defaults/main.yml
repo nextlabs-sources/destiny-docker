@@ -1,0 +1,3 @@
+---
+docker_entrypoint_home: /usr/local/bin
+install_home: /opt/certificate_generator

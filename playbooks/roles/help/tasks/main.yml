@@ -1,0 +1,84 @@
+---
+#docker_entrypoint_home: /opt/Nextlabs/PolicyServer/server/tomcat/bin
+#install_home: /opt/Nextlabs/PolicyServer/server
+#java_home: /opt/Nextlabs/PolicyServer
+#artifacts_path: 
+- name: "Copy tomcat folder"
+  copy:
+    src: "{{ artifacts_path }}/tomcat"
+    dest: "{{ install_home }}/tomcat"
+
+- name: "Copy tomcat/bin folder"
+  copy:
+    src: "{{ artifacts_path }}/tomcat/bin"
+    dest: "{{ install_home }}/tomcat/bin"
+
+- name: Creates webapps directory
+  file:
+    path:  "{{ install_home }}/tomcat/webapps"
+    state: directory
+
+- name: Creates logqueue directory
+  file:
+    path:  "{{ install_home }}/logqueue"
+    state: directory
+
+
+- name: Creates configuration directory
+  file:
+    path:  "{{ install_home }}/configuration"
+    state: directory
+
+- name: "Copy configuration folder"
+  copy:
+    src: "{{ artifacts_path }}/configuration"
+    dest: "{{ install_home }}/configuration"
+
+- name: Creates license directory
+  file:
+    path:  "{{ install_home }}/license"
+    state: directory
+
+- name: Creates logs directory
+  file:
+    path:  "{{ install_home }}/logs"
+    state: directory
+
+- name: Creates certificates directory
+  file:
+    path:  "{{ install_home }}/certificates"
+    state: directory
+
+- name: "Copy War file"
+  copy:
+    src: "{{ artifacts_path }}/apps/control-center-console.war"
+    dest: "{{ install_home }}/tomcat/webapps/control-center-console.war"
+
+- name: "Copy JAVA folder"
+  copy:
+    src: "{{ artifacts_path }}/java"
+    dest: "{{ java_home }}/java"
+
+- name: Copy license jar
+  copy:
+    src: "{{ artifacts_path }}/shared/lib/license.jar"
+    dest: "{{ install_home }}/license/"
+
+- name: Copy license.dat
+  copy:
+    src: "{{ artifacts_path }}/shared/license.dat"
+    dest: "{{ install_home }}/license/"
+
+
+
+- name: Create entrypoint for container
+  template:
+    src: entrypoint.j2
+    dest: "{{ docker_entrypoint_home }}/entrypoint"
+    mode: "0755"
+
+- name: Create tomcat setenv.sh
+  template:
+    src: setenv.sh.j2
+    dest: "{{ catalina_home }}/bin/setenv.sh"
+    mode: 0755

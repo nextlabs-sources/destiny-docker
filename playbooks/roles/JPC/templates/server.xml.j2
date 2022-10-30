@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE server [
+  <!ENTITY install_home "{{ install_home }}">
+]>
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener"/>
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <!--APR library loader. Documentation at /docs/apr.html -->
+  <Listener SSLEngine="on" className="org.apache.catalina.core.AprLifecycleListener"/>
+  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener"/>
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"/>
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener"/>
+
+  <!-- Global JNDI resources
+       Documentation at /docs/jndi-resources-howto.html
+  -->
+  <GlobalNamingResources>
+    <!-- Editable user database that can also be used by
+         UserDatabaseRealm to authenticate users
+    -->
+  </GlobalNamingResources>
+
+  <Service>
+    <Connector port="8080"
+      enableLookups="false"
+      SSLEnabled="false"
+      secure="true"
+      scheme="https">
+    </Connector>
+
+    <Engine name="CE-Apps" defaultHost="localhost">
+      <Host name="localhost"
+        autoDeploy="false"
+        unpackWARs="false">
+        <Context path="/console" reloadable="false" docBase="&install_home;/webapps/console" workDir="${catalina.base}/work/console">
+        </Context>
+      </Host>
+    </Engine>
+  </Service>
+</Server>

@@ -1,0 +1,88 @@
+version: "3"
+services:
+  db:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-db:9.5
+    container_name: db
+    network_mode: host
+    hostname: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=123Next
+      - PGPASSWORD=123Next
+    ports:
+    - "5432:5432"
+    extra_hosts:
+      - "docker.nextlabs.local:192.168.1.1"
+  es:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-es:1.7.3
+    container_name: es
+    network_mode: host
+    hostname: es
+    extra_hosts:
+      - "cc:192.168.1.1"   
+    ports:
+    - "9200:9200"
+    - "9300:9300"
+  cc:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-cc:8.6.4-7
+    container_name: cc
+    network_mode: host
+    hostname: docker.nextlabs.local
+    ports:
+    - "443:443"
+    - "8443:8443"
+    - "8889:8889"
+    volumes:
+    - /home/ec2-user/destiny-docker/dockerfiles/cc:/tmp/key
+    - /tmp/nextlabs/PolicyServer/server/certificates/cc:/opt/nextlabs/PolicyServer/server/certificates
+    extra_hosts:
+      - "db:192.168.1.1"
+      - "es:192.168.1.1"   
+      - "icenet:192.168.1.1"
+    depends_on:
+      - db
+      - es
+  icenet:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-icenet:8.6.4-7
+    container_name: icenet
+    network_mode: host
+    hostname: icenet
+    ports:
+    - "6443:6443"
+    - "8005:8005"
+    - "7779:7779"
+    volumes:
+    - /home/ec2-user/destiny-docker/dockerfiles/icenet:/tmp/key
+    - /tmp/nextlabs/PolicyServer/server/certificates/cc:/tmp/cc-certs
+    extra_hosts:
+      - "docker.nextlabs.local:192.168.1.1"
+      - "db:192.168.1.1"
+    depends_on:
+      - db
+      - es
+      - cc
+  jpc:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-jpc:8.6.4-7
+    container_name: jpc
+    hostname: jpc
+    network_mode: host
+    extra_hosts:
+      - "docker.nextlabs.local:192.168.1.1"
+      - "icenet:192.168.1.1"
+    ports:
+    - "58080:58080"
+    depends_on:
+      - icenet
+  nginx:
+    image: 948173514100.dkr.ecr.us-east-1.amazonaws.com/destiny-nginx:latest
+    container_name: nginx
+    hostname: docker.nextlabs.local
+    volumes:
+    - /home/ec2-user/destiny-docker/dockerfiles/nginx:/tmp/key
+    network_mode: host
+    extra_hosts:
+      - "docker.nextlabs.local:192.168.1.1"
+      - "jpc:192.168.1.1"
+    ports:
+    - "1443:1443"

@@ -1,0 +1,37 @@
+# variables in brackets will be replaced by Entry Point 
+
+application.version=Container
+help.content.dir.path={{ install_home }}/resources/help
+policy.exports.file.location={{ install_home }}/webapps/console/exports
+server.license.dir={{ install_home }}/license
+# omg
+server.log.queue.dir.path=/tmp
+
+# Database configurations
+db.url=[DATABASE_CONNECTSTRING]
+db.username=[DATABASE_USERNAME]
+db.password=[DATABASE_PASSWORD]
+
+db.driver=[DATABASE_DRIVER]
+db.max.poolsize=10
+db.hibernate.dialect=[DATABASE_DIALECT]
+db.hibernate.show.sql=true
+db.hibernate.ddl.auto=
+
+
+# Search data configurations
+search.engine.cluster.name=[ES_CLUSTER_NAME]
+search.engine.host=[ES_HOST]
+search.engine.port=[ES_PORT]
+search.engine.local=false
+#search.engine.local.home=./data/cc-data-cluster
+
+# CAS service configurations
+app.service.security=[CAS_CLIENT_SERVER_NAME]/console/j_spring_cas_security_check
+app.service.home=[CAS_CLIENT_SERVER_NAME]/console/
+cas.service.login=[CAS_AUTHENTICATION_SERVER_NAME]/cas/login
+cas.service.logout=[CAS_AUTHENTICATION_SERVER_NAME]/cas/logout
+cas.service.url=[CAS_TICKET_VALIDATION_SERVER_NAME]/cas/
+
+# Date formats
+mm.dd.yyyy=MM/dd/yyyy

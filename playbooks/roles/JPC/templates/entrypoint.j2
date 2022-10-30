@@ -1,0 +1,79 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = 'console' ]; then
+
+  if [ -z "${DATABASE_USERNAME}" ] \
+    || [ -z "${DATABASE_PASSWORD}" ] \
+    || [ -z "${DATABASE_CONNECTSTRING}" ]
+  then
+    echo "One of env of DATABASE_USERNAME, DATABASE_PASSWORD and DATABASE_CONNECTSTRING is not defined, exit"
+    exit 1
+
+  elif [ -z "${ES_HOST}" ]; then
+    echo "ES_HOST env is not defined, exit"
+    exit 1
+
+  elif [ -z "${CAS_AUTHENTICATION_SERVER_NAME}" ]; then
+    echo "CAS_AUTHENTICATION_SERVER_NAME env is not defined, exit"
+    exit 1
+
+  else
+    if [[ "$DATABASE_CONNECTSTRING" == sqlserver* ]]; then
+      DATABASE_DRIVER=com.microsoft.sqlserver.jdbc.SQLServerDriver
+      DATABASE_DIALECT=com.nextlabs.destiny.console.hibernate.dialect.SqlServerDialectEx
+
+    elif [[ "$DATABASE_CONNECTSTRING" == oracle* ]]; then
+      DATABASE_DRIVER=oracle.jdbc.driver.OracleDriver
+      DATABASE_DIALECT=org.hibernate.dialect.Oracle10gDialect
+
+    elif [[ "$DATABASE_CONNECTSTRING" == postgresql* ]]; then
+      DATABASE_DRIVER=org.postgresql.Driver
+      DATABASE_DIALECT=com.nextlabs.destiny.console.hibernate.dialect.PostgreSQL9DialectEx
+
+    else
+      echo "Connection string not valid: " $DATABASE_CONNECTSTRING
+      exit 1
+    fi
+
+    # Only set ES_CLUSTER_NAME if not already set
+    [ -z "$ES_CLUSTER_NAME" ] && ES_CLUSTER_NAME=elasticsearch
+    
+    # Only set ES_PORT if not already set
+    [ -z "$ES_PORT" ] && ES_PORT=9300
+
+    if [ -z "$CAS_TICKET_VALIDATION_SERVER_NAME" ]; then
+      echo "CAS_TICKET_VALIDATION_SERVER_NAME env is not defined, use CAS_AUTHENTICATION_SERVER_NAME's value"
+      CAS_TICKET_VALIDATION_SERVER_NAME=$CAS_AUTHENTICATION_SERVER_NAME
+    fi
+
+    # Get hostname
+    HOSTNAME=`hostname -f`
+    if [ -z "$CAS_CLIENT_SERVER_NAME" ]; then
+      echo "CAS_CLIENT_SERVER_NAME env is not defined, use http://$HOSTNAME:8080"
+      CAS_CLIENT_SERVER_NAME=http://$HOSTNAME:8080
+    fi
+    
+    # encrypt the db password
+    ENCRYPTED_DATABASE_PASSWORD=`java -jar "{{ install_home }}/tools/crypt/crypt.jar" -w $DATABASE_PASSWORD`
+
+    # Generate cc-console-app.properties
+    sed -e "s|\[DATABASE_DIALECT\]|$DATABASE_DIALECT|g" \
+        -e "s|\[DATABASE_USERNAME\]|$DATABASE_USERNAME|g" \
+        -e "s|\[DATABASE_PASSWORD\]|$ENCRYPTED_DATABASE_PASSWORD|g" \
+        -e "s|\[DATABASE_CONNECTSTRING\]|jdbc:$DATABASE_CONNECTSTRING|g" \
+        -e "s|\[DATABASE_DRIVER\]|$DATABASE_DRIVER|g" \
+        -e "s|\[ES_HOST\]|$ES_HOST|g" \
+        -e "s|\[ES_CLUSTER_NAME\]|$ES_CLUSTER_NAME|g" \
+        -e "s|\[ES_PORT\]|$ES_PORT|g" \
+        -e "s|\[CAS_AUTHENTICATION_SERVER_NAME\]|$CAS_AUTHENTICATION_SERVER_NAME|g" \
+        -e "s|\[CAS_TICKET_VALIDATION_SERVER_NAME\]|$CAS_TICKET_VALIDATION_SERVER_NAME|g" \
+        -e "s|\[CAS_CLIENT_SERVER_NAME\]|$CAS_CLIENT_SERVER_NAME|g" \
+        "{{ install_home }}/configuration/cc-console-app-template.properties" > "{{ install_home }}/configuration/cc-console-app.properties"
+    
+    shift
+    exec "$@"
+  fi
+else
+  exec "$@"
+fi
